@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.util;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.AnalogInput;
@@ -7,7 +7,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.SwerveUtil.ModuleState;
+import org.firstinspires.ftc.teamcode.util.ModuleState;
+import org.firstinspires.ftc.teamcode.util.PIDController;
 
 public class SwerveModule {
 	private DcMotor motorOne;
@@ -17,11 +18,10 @@ public class SwerveModule {
 	private double speedSetpoint = 0;
 	private double angleSetpoint = 0;
 	private double angleTolerance = 1;
-	private double angleThreshold = 15;
 	private double gearing;
 	private double maxRPM = 6000;
 	public ModuleState setpoint;
-	private double turnP = .005;
+	private PIDController turnController;
 
 	public SwerveModule(AnalogInput encoder, double encoderOffset, DcMotor motorOne, DcMotor motorTwo, double gearing) {
 		this.motorOne = motorOne;
@@ -29,6 +29,8 @@ public class SwerveModule {
 		this.encoder = encoder;
 		this.offset = encoderOffset;
 		this.gearing = gearing;
+
+		turnController = new PIDController(.01, 0, 0);
 	}
 
 	public AnalogInput getEncoder() {
@@ -39,6 +41,12 @@ public class SwerveModule {
 		return encoder.getVoltage() * (360. / encoder.getMaxVoltage()) - offset;
 	}
 
+	public double getAngleDifference(double angle) {
+		return Math.min(Math.abs(this.getAngle() - angle),
+				Math.min(Math.abs((this.getAngle() + 360) - angle),
+						Math.abs(this.getAngle() - (angle + 360))));
+	}
+
 	public ModuleState getState() {
 		return new ModuleState(this.maxRPM * this.gearing * (this.motorOne.getPower() - this.motorTwo.getPower()),
 				this.getAngle());
@@ -47,31 +55,24 @@ public class SwerveModule {
 	public void runMotors(double motorOnePower, double motorTwoPower) {
 		motorOne.setPower(motorOnePower);
 		motorTwo.setPower(motorTwoPower);
-
 	}
 
-	public boolean setState(ModuleState state) {
-
-		this.setpoint = state;// ModuleState.optimizeState(state, this.getState());
-		// TODO optimize turning
-		if (Math.abs(state.theta - this.getAngle()) < this.angleThreshold) {
-			double power = state.rpm;// / this.maxRPM;
-			if (Math.abs(state.theta - this.getAngle()) < this.angleTolerance) {
-				this.runMotors(power, -power);
-			} else {
-				double diff = 0;
-				diff = this.turnP * (state.theta - this.getAngle());
-				if (diff > (1 - Math.abs(power))) {
-					diff = (1 - Math.abs(power));
-				}
-				this.runMotors(power + diff, -power + diff);
-			}
-			return true;
+	public void setState(ModuleState state) {
+		double angleDiff = this.getAngleDifference(state.theta);
+		
+		if (angleDiff > 90) {
+			this.setpoint = new ModuleState(state.rpm * -1, (state.theta + 180) % 360);
 		} else {
-			double power = Math.copySign(1, state.theta - this.getAngle());
-			this.runMotors(power, power);
-
-			return false;
+			this.setpoint = state;
 		}
+		
+		double power = state.rpm * (this.gearing / this.maxRPM);
+		this.turnController.setSetpoint(this.setpoint.theta);
+		double turnPower = this.turnController.calculate(this.getAngle());
+		if (Math.abs(turnPower) > (1-Math.abs(power))) {
+			turnPower = Math.copySign(1-Math.abs(power), turnPower);
+		}
+		
+		this.runMotors(power + turnPower, -power + turnPower);
 	}
 }

@@ -7,9 +7,9 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.SwerveModule;
-import org.firstinspires.ftc.teamcode.SwerveDrivetrain;
 import org.firstinspires.ftc.teamcode.Constants.DrivetrainConstants;
+import org.firstinspires.ftc.teamcode.util.SwerveDrivetrain;
+import org.firstinspires.ftc.teamcode.util.SwerveModule;
 
 @TeleOp(name = "Drive With Joysticks", group = "Linear OpMode")
 
@@ -74,25 +74,5 @@ public class SwerveRobot extends LinearOpMode {
 
 		}
 	}
-
-	// double[] getMotorStatesFromJoystick(float gamepadX, float gamepadY) {
-	// telemetry.update();
-	// double[] states = new double[]{0.00,0.00};
-	// return states;
-	// }
-
-	// void turnToAngle(double angle) {
-	// while (Math.abs(frontEncoder.getVoltage() * (360/3.3) - angle) > 1 &&
-	// opModeIsActive() && !this.gamepad1.circle) {
-	// fr.setPower(.00);
-	// fl.setPower(.1);
-	// telemetry.addData("Diff", Math.abs(frontEncoder.getVoltage() * (360/3.3) -
-	// angle));
-	// telemetry.addData("Angle", frontEncoder.getVoltage() * (360/3.3) - angle);
-	// telemetry.update();
-	// }
-	// fr.setPower(0);
-	// fl.setPower(0);
-	// }
 
 }
